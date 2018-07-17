@@ -1,21 +1,24 @@
+// gcc -Wall -pthread -o pulse433 main.c -lpigpiod_if2 -lrt
+
 #include <stdio.h>
 #include <pigpiod_if2.h>
 #define RF_PIN 18
 
 #define ERROR_NIBBLE 0xFF
+#define BATTERY_CONSTANT (3.3/256) * 1.432
 
-// gcc -Wall -pthread -o pulse433 main.c -lpigpiod_if2 -lrt
+// pigpiod instance
 
+int pigpiod;
 // data control
+char msg[100];
 uint8_t data_n;
 uint8_t data_bit_n;
 uint8_t data[8];
 uint8_t valid_msg;
-char msg[100];
 uint32_t last_pulse;
 uint32_t last_tick;
 
-int pi;
 
 // declarations
 uint8_t get_checksum(uint8_t* data);
@@ -24,31 +27,27 @@ void interrupt(int pi, uint32_t gpio, uint32_t level, uint32_t tick);
 
 int main(int argc, char * argv[])
 {
-	pi = pigpio_start(0, 0);
-	if (pi < 0)
+	pigpiod = pigpio_start(0, 0);
+	if (pigpiod < 0)
 	{
-		fprintf(stderr, "pigpio initialisation failed (%d).\n", pi);
+		fprintf(stderr, "pigpio initialisation failed (%d).\n", pigpiod);
 		return 1;
 	}
-	printf("Connected to pigpio daemon (%d).\n", pi);
+	printf("Connected to pigpio daemon (%d).\n", pigpiod);
 
 	valid_msg = 0;
-	set_mode(pi, RF_PIN, PI_INPUT);
-	set_pull_up_down(pi, RF_PIN, PI_PUD_OFF);
-	callback(pi, RF_PIN, FALLING_EDGE, interrupt);
-
-	float battcoef = (3.3/256) * 1.445;
-	float battfloat = 0x00;
+	set_mode(pigpiod, RF_PIN, PI_INPUT);
+	set_pull_up_down(pigpiod, RF_PIN, PI_PUD_OFF);
+	callback(pigpiod, RF_PIN, FALLING_EDGE, interrupt);
 
 	while (1)
 	{
 		if (valid_msg) 
 		{
-			battfloat = data[1];
 			sprintf(msg,(char*)"(%u) 0x%X %.2f 0x%X volts\n",
 			data[0],
 			data[0],
-			battfloat * battcoef,
+			(float)data[1] * BATTERY_CONSTANT,
 			data[1]);
 
 			printf("\n %s", msg);
@@ -62,7 +61,7 @@ int main(int argc, char * argv[])
 		time_sleep(0.001f);
 	}
 
-	pigpio_stop(pi);
+	pigpio_stop(pigpiod);
 	return 0;
 }
 
@@ -72,7 +71,6 @@ uint8_t get_checksum(uint8_t* data) {
 		result += data[i];
 	return result;
 }
-
 
 void interrupt(int pi, uint32_t gpio, uint32_t level, uint32_t tick){
 

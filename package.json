@@ -1,0 +1,20 @@
+{
+  "name": "mows-srv",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "mkdir -p bin/ && gcc -Wall -pthread -o bin/pulse433 src/pulse433.c -lpigpiod_if2 -lrt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chisenberg/mows-srv.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chisenberg/mows-srv/issues"
+  },
+  "homepage": "https://github.com/chisenberg/mows-srv#readme"
+}
