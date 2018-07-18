@@ -8,7 +8,6 @@
 #define BATTERY_CONSTANT (3.3/256) * 1.432
 
 // pigpiod instance
-
 int pigpiod;
 // data control
 char msg[100];
