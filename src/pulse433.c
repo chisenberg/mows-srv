@@ -1,9 +1,9 @@
 // gcc -Wall -pthread -o pulse433 main.c -lpigpiod_if2 -lrt
 
-#include <stdio.h>
 #include <pigpiod_if2.h>
-#define RF_PIN 18
+#include <stdio.h>
 
+#define RF_PIN 18
 #define ERROR_NIBBLE 0xFF
 #define BATTERY_CONSTANT (3.3/256) * 1.432
 
@@ -21,11 +21,13 @@ uint32_t last_tick;
 
 // declarations
 uint8_t get_checksum(uint8_t* data);
-// void interrupt(int gpio, int level, uint32_t tick);
 void interrupt(int pi, uint32_t gpio, uint32_t level, uint32_t tick);
 
 int main(int argc, char * argv[])
 {
+	// disables buffer
+	setvbuf(stdout, NULL, _IOLBF, 0);
+
 	pigpiod = pigpio_start(0, 0);
 	if (pigpiod < 0)
 	{
