@@ -5,7 +5,6 @@
 
 #define RF_PIN 18
 #define ERROR_NIBBLE 0xFF
-#define BATTERY_CONSTANT (3.3/256) * 1.432
 
 // pigpiod instance
 int pigpiod;
@@ -17,7 +16,6 @@ uint8_t data[8];
 uint8_t valid_msg;
 uint32_t last_pulse;
 uint32_t last_tick;
-
 
 // declarations
 uint8_t get_checksum(uint8_t* data);
@@ -34,7 +32,7 @@ int main(int argc, char * argv[])
 		fprintf(stderr, "pigpio initialisation failed (%d).\n", pigpiod);
 		return 1;
 	}
-	printf("Connected to pigpio daemon (%d).\n", pigpiod);
+	// printf("Connected to pigpio daemon (%d).\n", pigpiod);
 
 	valid_msg = 0;
 	set_mode(pigpiod, RF_PIN, PI_INPUT);
@@ -43,22 +41,21 @@ int main(int argc, char * argv[])
 
 	while (1)
 	{
-		if (valid_msg) 
+		if (valid_msg && get_checksum(data) == data[7]) 
 		{
-			sprintf(msg,(char*)"(%u) 0x%X %.2f 0x%X volts\n",
-			data[0],
-			data[0],
-			(float)data[1] * BATTERY_CONSTANT,
-			data[1]);
-
-			printf("\n %s", msg);
-
-			if(get_checksum(data) != data[7]) {
-				printf(" ---  <!> CORRUPTED MSG <!>\n");
-			}
-
-			valid_msg = 0;
+			sprintf(msg,(char*)"0x%02X;0x%02X;0x%02X;0x%02X;0x%02X;0x%02X;0x%02X",
+				data[0],
+				data[1],
+				data[2],
+				data[3],
+				data[4],
+				data[5],
+				data[6]
+			);
+			printf("%s", msg);
+			fflush(stdout);
 		}
+		valid_msg = 0;
 		time_sleep(0.001f);
 	}
 
