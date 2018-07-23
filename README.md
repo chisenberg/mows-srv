@@ -1,1 +1,1 @@
-# mows-srv
+# mows-svr

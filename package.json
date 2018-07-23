@@ -1,19 +1,19 @@
 {
-  "name": "mows-srv",
+  "name": "mows-svrnpmt",
   "version": "1.0.0",
   "description": "",
   "author": "",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chisenberg/mows-srv.git"
+    "url": "git+https://github.com/chisenberg/mows-svr.git"
   },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "build": "mkdir -p bin/ && gcc -Wall -pthread -o bin/pulse433 src/pulse433.c -lpigpiod_if2 -lrt",
-    "dev-all": "nodemon --watch server.js --watch src/* --watch lib/* --exec 'npm run build && npm run start'",
-    "dev": "nodemon --watch server.js --watch src/* --watch lib/* --exec npm run start"
+    "dev-all": "nodemon --watch server.js --watch src/ --watch lib/ --exec 'npm run build && npm run start'",
+    "dev": "nodemon --watch server.js --watch src/ --watch lib/ --exec npm run start"
   },
   "dependencies": {
     "dblite": "^0.10.0",

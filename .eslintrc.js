@@ -29,5 +29,8 @@ module.exports = {
                 allow: ["warn", "error"]
             }
         ]
+    },
+    "globals": {
+        "Promise": true
     }
 };
