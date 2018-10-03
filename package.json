@@ -16,6 +16,7 @@
     "dev": "nodemon --watch server.js --watch src/ --watch lib/ --exec npm run start"
   },
   "dependencies": {
+    "body-parser": "^1.18.3",
     "dblite": "^0.10.0",
     "express": "^4.16.3"
   },

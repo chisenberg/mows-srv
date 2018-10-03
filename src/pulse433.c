@@ -58,11 +58,9 @@ int main(int argc, char * argv[])
 
 	while (1)
 	{
-		// if (valid_msg && get_checksum(data) == data[7]) 
-		if (valid_msg) 
+		// if (valid_msg) 
+		if (valid_msg && get_checksum(data) == data[7]) 
 		{
-
-
 			sprintf(msg,(char*)"0x%02X;0x%02X;0x%02X;0x%02X;0x%02X;0x%02X;0x%02X",
 			// sprintf(msg,(char*)"\n0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X",
 				data[0],
@@ -167,7 +165,7 @@ void decode(){
 			}
 
 			// received all 8 bytes
-			if(data_n == 7) {
+			if(data_n == 8) {
 				valid_msg = 1;
 				return;
 			}
