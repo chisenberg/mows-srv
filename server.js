@@ -1,28 +1,26 @@
-const path = require('path');
+// const path = require('path');
 const express = require('express');
-const apiRouter = require('./lib/api');
 const app = express();
+const cors = require('cors');
 
 // Database
-const Database  = require('./lib/database.js');
+const Database = require('./lib/database.js');
 const db = new Database(__dirname +'/database.db');
+
+// api router with database
+const Api = require('./lib/api');
+const api = new Api(db);
 
 // RF binary
 const { spawn } = require('child_process');
 const pulse433 = spawn('./bin/pulse433', []);
 const BATTERY_CONSTANT = (3.3/256) * 1.422;
 
-// Sends static files  from the public path directory
-app.use(express.static(path.join(__dirname, '/public')));
-
-// Serve index.html
-app.get('/', function (req, res, next) {
-	res.sendFile('./public/index.html');
-	next();
-});
+// Express use CORS
+app.use(cors());
 
 //  Use routes defined in api/routes.js
-app.use('/api', apiRouter);
+app.use('/api', api.router);
 
 const server = app.listen(8080, function () {
 	let port = server.address().port;
@@ -40,7 +38,7 @@ pulse433.stdout.on('data', (data) => {
 	var humid = parseFloat(((parseInt(dataArray[4]) * 256 + parseInt(dataArray[5])) / 10).toFixed(2));
 	var batt = parseFloat((parseInt(dataArray[1]) * BATTERY_CONSTANT).toFixed(2));
 
-	db.log({
+	db.record({
 		temperature: temp,
 		humidity: humid,
 		battery: batt
