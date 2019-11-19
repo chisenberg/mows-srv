@@ -4,11 +4,11 @@ const app = express();
 const cors = require('cors');
 
 // Database
-const Database = require('./lib/database.js');
+const Database = require('./libs/database.js');
 const db = new Database(__dirname +'/database.db');
 
 // api router with database
-const Api = require('./lib/api');
+const Api = require('./libs/api');
 const api = new Api(db);
 
 // RF binary
