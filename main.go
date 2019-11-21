@@ -6,8 +6,7 @@ import (
 )
 
 func main() {
-	pulse433 := rf.Pulse433{};
-	pulse433.Init();
+	rf.InitPulse433();
 	for{
 
 	};
