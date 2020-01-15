@@ -111,7 +111,7 @@ func decode() {
 		}
 
 		if(lastNibble != errorNibble){
-			// stores bit received
+			// stores bits received
 			data[dataCounter] = data[dataCounter] | lastNibble << dataBitCount;
 
 			// increments data counter
