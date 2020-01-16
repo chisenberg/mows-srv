@@ -27,19 +27,25 @@ var (
 	lastTick C.uint32_t;
 	buffer [64]uint32;
 	bufferPos uint8;
+
+	// Output channel
+	outputChannel chan MowsMsg
 )
 
 // InitPulse433 starts to listen
-func InitPulse433() {
+func InitPulse433() (chan MowsMsg, error){
 	pigpio = C.pigpio_start(nil, nil);
 	if (pigpio < 0) {
-		fmt.Printf("pigpio initialisation failed (%d).\n", pigpio);
-		return;
+		return nil, fmt.Errorf("Pigpiod not initialized.")
 	}
+
+	outputChannel = make(chan MowsMsg) 
 
 	C.set_mode(pigpio, C.uint(rfPin), C.PI_INPUT);
 	C.set_pull_up_down(pigpio, C.uint(rfPin), C.PI_PUD_OFF);
 	C.pulse433_register_callback(pigpio, C.uint(rfPin));
+
+	return outputChannel, nil
 }
 
 //export pulse433_go_interrupt
@@ -124,8 +130,7 @@ func decode() {
 
 			// received all 8 bytes
 			if(dataCounter == 8) {
-				msg := DecodeData(data);
-				fmt.Printf("%+v\n",msg);
+				outputChannel <- DecodeData(data);
 				return;
 			}
 		}
