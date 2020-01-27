@@ -19,7 +19,7 @@ var (
 	// Defines
 	rfPin = 18;
 	errorNibble = uint8(0xFF);
-	threshold = uint32(40);
+	threshold = uint32(50);
 	pigpio C.int;
 
 	// Buffer and pulse length
@@ -62,7 +62,7 @@ func pulse433_go_interrupt(pigpio C.int, gpio C.uint32_t, level C.uint32_t, tick
 	if(lastPulse > 50 && lastPulse < 600 && bufferPos < 64) {
 		buffer[bufferPos] = uint32(lastPulse);
 		bufferPos++;
-	} else if (lastPulse > 800 && bufferPos >= 28 && buffer[0] < buffer[1]) {
+	} else if (lastPulse > 800 && bufferPos >= 40 && buffer[0] < buffer[1]) {
 		decode();
 		bufferPos = 0;
 	} else {
@@ -128,8 +128,8 @@ func decode() {
 				data[dataCounter] = 0x00;
 			}
 
-			// received all 8 bytes
-			if(dataCounter == 8) {
+			// received all 9 bytes
+			if(dataCounter == 9) {
 				outputChannel <- DecodeData(data);
 				return;
 			}
