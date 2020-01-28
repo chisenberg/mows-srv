@@ -18,13 +18,13 @@ import (
 var (
 	// Defines
 	rfPin = 18;
-	errorNibble = uint8(0xFF);
+	errordibit = uint8(0xFF);
 	threshold = uint32(50);
 	pigpio C.int;
 
 	// Buffer and pulse length
-	lastPulse C.uint32_t;
-	lastTick C.uint32_t;
+	lastPulse uint32;
+	lastTick uint32;
 	buffer [64]uint32;
 	bufferPos uint8;
 
@@ -36,7 +36,7 @@ var (
 func InitPulse433() (chan MowsMsg, error){
 	pigpio = C.pigpio_start(nil, nil);
 	if (pigpio < 0) {
-		return nil, fmt.Errorf("Pigpiod not initialized.")
+		return nil, fmt.Errorf("Pigpiod not initialized")
 	}
 
 	outputChannel = make(chan MowsMsg) 
@@ -56,13 +56,13 @@ func pulse433_go_interrupt(pigpio C.int, gpio C.uint32_t, level C.uint32_t, tick
 		return;
 	}
 	// store pulse duration
-	lastPulse = tick - lastTick;
-	lastTick = tick;
+	lastPulse = uint32(tick) - uint32(lastTick);
+	lastTick = uint32(tick);
 
-	if(lastPulse > 50 && lastPulse < 600 && bufferPos < 64) {
-		buffer[bufferPos] = uint32(lastPulse);
+	if isValidPulse(lastPulse) && bufferPos < 62 {
+		buffer[bufferPos] = lastPulse;
 		bufferPos++;
-	} else if (lastPulse > 800 && bufferPos >= 40 && buffer[0] < buffer[1]) {
+	} else if isEndPulse(lastPulse) && areDibitsSorted() && bufferPos > 36{
 		decode();
 		bufferPos = 0;
 	} else {
@@ -70,22 +70,39 @@ func pulse433_go_interrupt(pigpio C.int, gpio C.uint32_t, level C.uint32_t, tick
 	}
 }
 
+// check if received pulse is at least 2x the largest dibit 
+func isEndPulse(pulse uint32) bool {
+	return pulse > (buffer[3] * 2)
+}
+
+// first 4 pulses (dibits) are sorted
+func areDibitsSorted() bool {
+	return buffer[0] < buffer[1] && buffer[1] < buffer[2] && buffer[2] < buffer[3]
+}
+
+// pulses out of this range are garbage or end of message
+func isValidPulse(pulse uint32) bool {
+	return pulse > 50 && pulse < 600
+}
+
 func near(first uint32, second uint32, threshold uint32) bool {
 	return (first > (second - threshold) && first < (second + threshold));
 }
 
 func decode() {
-	// sets the nibbles for this message
-	nibble1 := buffer[0]; // 00
-	nibble2 := buffer[1]; // 01
-	nibble3 := buffer[2]; // 10
-	nibble4 := buffer[3]; // 11
+	// sets the dibits for this message
+	dibit1 := buffer[0]; // 00
+	dibit2 := buffer[1]; // 01
+	dibit3 := buffer[2]; // 10
+	dibit4 := buffer[3]; // 11
+
+	fmt.Println(dibit1, dibit2, dibit3, dibit4);
 
 	var (
 		data [32]uint8;
 		dataCounter uint8;
 		dataBitCount uint8;
-		lastNibble uint8;
+		lastdibit uint8;
 		pulse uint32;
 	)
 
@@ -101,24 +118,24 @@ func decode() {
 
 		pulse = buffer[i];
 
-		if near(pulse, nibble1, threshold){
-			lastNibble = 0x00; 
-		} else if near(pulse, nibble2, threshold){
-			lastNibble = 0x01; 
-		} else if near(pulse, nibble3, threshold){
-			lastNibble = 0x02;
-		} else if near(pulse, nibble4, threshold){
-		 	lastNibble = 0x03;
+		if near(pulse, dibit1, threshold){
+			lastdibit = 0x00; 
+		} else if near(pulse, dibit2, threshold){
+			lastdibit = 0x01; 
+		} else if near(pulse, dibit3, threshold){
+			lastdibit = 0x02;
+		} else if near(pulse, dibit4, threshold){
+		 	lastdibit = 0x03;
 		} else {
-			lastNibble = errorNibble;
+			lastdibit = errordibit;
 			dataCounter = 0;
 			dataBitCount = 0;
 			data[dataCounter] = 0x00;
 		}
 
-		if(lastNibble != errorNibble){
+		if(lastdibit != errordibit){
 			// stores bits received
-			data[dataCounter] = data[dataCounter] | lastNibble << dataBitCount;
+			data[dataCounter] = data[dataCounter] | lastdibit << dataBitCount;
 
 			// increments data counter
 			dataBitCount+=2;
