@@ -17,60 +17,60 @@ import (
 
 var (
 	// Defines
-	rfPin = 18;
-	errordibit = uint8(0xFF);
-	threshold = uint32(50);
-	pigpio C.int;
+	rfPin      = 18
+	errordibit = uint8(0xFF)
+	threshold  = uint32(65)
+	pigpio     C.int
 
 	// Buffer and pulse length
-	lastPulse uint32;
-	lastTick uint32;
-	buffer [64]uint32;
-	bufferPos uint8;
+	lastPulse uint32
+	lastTick  uint32
+	buffer    [64]uint32
+	bufferPos uint8
 
 	// Output channel
 	outputChannel chan MowsMsg
 )
 
 // InitPulse433 starts to listen
-func InitPulse433() (chan MowsMsg, error){
-	pigpio = C.pigpio_start(nil, nil);
-	if (pigpio < 0) {
+func InitPulse433() (chan MowsMsg, error) {
+	pigpio = C.pigpio_start(nil, nil)
+	if pigpio < 0 {
 		return nil, fmt.Errorf("Pigpiod not initialized")
 	}
 
-	outputChannel = make(chan MowsMsg) 
+	outputChannel = make(chan MowsMsg)
 
-	C.set_mode(pigpio, C.uint(rfPin), C.PI_INPUT);
-	C.set_pull_up_down(pigpio, C.uint(rfPin), C.PI_PUD_OFF);
-	C.pulse433_register_callback(pigpio, C.uint(rfPin));
+	C.set_mode(pigpio, C.uint(rfPin), C.PI_INPUT)
+	C.set_pull_up_down(pigpio, C.uint(rfPin), C.PI_PUD_OFF)
+	C.pulse433_register_callback(pigpio, C.uint(rfPin))
 
 	return outputChannel, nil
 }
 
 //export pulse433_go_interrupt
-func pulse433_go_interrupt(pigpio C.int, gpio C.uint32_t, level C.uint32_t, tick C.uint32_t){
+func pulse433_go_interrupt(pigpio C.int, gpio C.uint32_t, level C.uint32_t, tick C.uint32_t) {
 
 	// just low pulse
-	if(level == 1) {
-		return;
+	if level == 1 {
+		return
 	}
 	// store pulse duration
-	lastPulse = uint32(tick) - uint32(lastTick);
-	lastTick = uint32(tick);
+	lastPulse = uint32(tick) - uint32(lastTick)
+	lastTick = uint32(tick)
 
 	if isValidPulse(lastPulse) && bufferPos < 62 {
-		buffer[bufferPos] = lastPulse;
-		bufferPos++;
-	} else if isEndPulse(lastPulse) && areDibitsSorted() && bufferPos > 36{
-		decode();
-		bufferPos = 0;
+		buffer[bufferPos] = lastPulse
+		bufferPos++
+	} else if isEndPulse(lastPulse) && areDibitsSorted() && bufferPos > 36 {
+		decode()
+		bufferPos = 0
 	} else {
-		bufferPos = 0;
+		bufferPos = 0
 	}
 }
 
-// check if received pulse is at least 2x the largest dibit 
+// check if received pulse is at least 2x the largest dibit
 func isEndPulse(pulse uint32) bool {
 	return pulse > (buffer[3] * 2)
 }
@@ -86,69 +86,70 @@ func isValidPulse(pulse uint32) bool {
 }
 
 func near(first uint32, second uint32, threshold uint32) bool {
-	return (first > (second - threshold) && first < (second + threshold));
+	return (first > (second-threshold) && first < (second+threshold))
 }
 
 func decode() {
 	// sets the dibits for this message
-	dibit1 := buffer[0]; // 00
-	dibit2 := buffer[1]; // 01
-	dibit3 := buffer[2]; // 10
-	dibit4 := buffer[3]; // 11
+	dibit1 := buffer[0] // 00
+	dibit2 := buffer[1] // 01
+	dibit3 := buffer[2] // 10
+	dibit4 := buffer[3] // 11
 
-	fmt.Println(dibit1, dibit2, dibit3, dibit4);
+	// fmt.Println(dibit1, dibit2, dibit3, dibit4)
+	fmt.Printf("\n\n")
 
 	var (
-		data [32]uint8;
-		dataCounter uint8;
-		dataBitCount uint8;
-		lastdibit uint8;
-		pulse uint32;
+		data         [32]uint8
+		dataCounter  uint8
+		dataBitCount uint8
+		lastdibit    uint8
+		pulse        uint32
 	)
 
 	// clear data
 	for i := range data {
-        data[i] = 0;
-    }
-	dataCounter = 0;
-	dataBitCount = 0;
-	data[dataCounter] = 0x00;
+		data[i] = 0
+	}
+	dataCounter = 0
+	dataBitCount = 0
+	data[dataCounter] = 0x00
 
-	for i:=uint8(4); i < bufferPos; i++ {
+	for i := uint8(4); i < bufferPos; i++ {
 
-		pulse = buffer[i];
+		pulse = buffer[i]
 
-		if near(pulse, dibit1, threshold){
-			lastdibit = 0x00; 
-		} else if near(pulse, dibit2, threshold){
-			lastdibit = 0x01; 
-		} else if near(pulse, dibit3, threshold){
-			lastdibit = 0x02;
-		} else if near(pulse, dibit4, threshold){
-		 	lastdibit = 0x03;
+		if near(pulse, dibit1, threshold) {
+			lastdibit = 0x00
+		} else if near(pulse, dibit2, threshold) {
+			lastdibit = 0x01
+		} else if near(pulse, dibit3, threshold) {
+			lastdibit = 0x02
+		} else if near(pulse, dibit4, threshold) {
+			lastdibit = 0x03
 		} else {
-			lastdibit = errordibit;
-			dataCounter = 0;
-			dataBitCount = 0;
-			data[dataCounter] = 0x00;
+			lastdibit = errordibit
+			dataCounter = 0
+			dataBitCount = 0
+			data[dataCounter] = 0x00
 		}
 
-		if(lastdibit != errordibit){
+		if lastdibit != errordibit {
 			// stores bits received
-			data[dataCounter] = data[dataCounter] | lastdibit << dataBitCount;
+			data[dataCounter] = data[dataCounter] | lastdibit<<dataBitCount
 
 			// increments data counter
-			dataBitCount+=2;
-			if(dataBitCount == 8){
-				dataCounter++;
-				dataBitCount = 0;
-				data[dataCounter] = 0x00;
+			dataBitCount += 2
+			if dataBitCount == 8 {
+				dataCounter++
+				dataBitCount = 0
+				data[dataCounter] = 0x00
 			}
 
 			// received all 9 bytes
-			if(dataCounter == 9) {
-				outputChannel <- DecodeData(data);
-				return;
+			if dataCounter == 9 {
+				outputChannel <- DecodeData(data)
+				return
 			}
 		}
 	}
