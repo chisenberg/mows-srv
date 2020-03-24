@@ -11,7 +11,7 @@ import (
 )
 
 func connect() *sql.DB {
-	db, err := sql.Open("sqlite3", "./database2.db")
+	db, err := sql.Open("sqlite3", "./database.db")
 	if err != nil {
 		fmt.Println("Error opening database file. Err msg: " + err.Error())
 		return nil
